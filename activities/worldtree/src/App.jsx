@@ -1,32 +1,7 @@
 import { useEffect, useState } from "react";
-import { calculateWorldtree, type ApiResponse } from "./calc";
+import { calculateWorldtree } from "./calc";
 
-type NumericFieldValue = number | "";
-
-type SortMode = "Balanced" | "Max Push";
-type Wt4Type = "None" | "Perfect Storm" | "Wind" | "Cold" | "Holy";
-
-type FormState = {
-  apples: NumericFieldValue;
-  milestones: NumericFieldValue;
-  hp: NumericFieldValue;
-  mana: NumericFieldValue;
-  fifteen: NumericFieldValue;
-  max_ascension: NumericFieldValue;
-  starforce: NumericFieldValue;
-  wt4: Wt4Type;
-  mage: boolean;
-  smite_push: boolean;
-  use_bt: boolean;
-  use_gw: boolean;
-  ea_max: NumericFieldValue;
-  lb_max: NumericFieldValue;
-  show_count: NumericFieldValue;
-  sort_mode: SortMode;
-  flat_weight: NumericFieldValue;
-};
-
-const DEFAULT_FORM: FormState = {
+const DEFAULT_FORM = {
   apples: 73,
   milestones: 0,
   hp: 0,
@@ -94,7 +69,7 @@ const MILESTONE_DATA = [
   ["40", "10aj"],
   ["41", "100aj"],
   ["42", "1ak"],
-] as const;
+];
 
 const LB_DATA = [
   ["LB 1", "250.00al"],
@@ -106,13 +81,13 @@ const LB_DATA = [
   ["LB 7", "250.00cn"],
   ["LB 8", "250.00dd"],
   ["LB 9", "250.00dw"],
-] as const;
+];
 
-function normalizeNumber(value: NumericFieldValue, fallback = 0) {
+function normalizeNumber(value, fallback = 0) {
   return value === "" ? fallback : value;
 }
 
-function loadSavedForm(): FormState | null {
+function loadSavedForm() {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (!saved) {
@@ -122,15 +97,15 @@ function loadSavedForm(): FormState | null {
     return {
       ...DEFAULT_FORM,
       ...JSON.parse(saved),
-    } as FormState;
+    };
   } catch {
     return null;
   }
 }
 
 function App() {
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
-  const [results, setResults] = useState<ApiResponse | null>(null);
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const [results, setResults] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [status, setStatus] = useState("Ready");
   const [error, setError] = useState("");
@@ -207,7 +182,7 @@ function App() {
         sort_mode: form.sort_mode,
         flat_weight: normalizeNumber(form.flat_weight, 5),
       };
-      const resultPayload: ApiResponse = calculateWorldtree(requestPayload);
+      const resultPayload = calculateWorldtree(requestPayload);
       setResults(resultPayload);
       setPageIndex(0);
       setStatus(resultPayload.perf_text);
@@ -218,7 +193,7 @@ function App() {
     }
   }
 
-  function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
+  function updateField(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -271,7 +246,7 @@ function App() {
           </div>
 
           <div className="input-grid">
-            <SelectField label="WT4" value={form.wt4} onChange={(value) => updateField("wt4", value as Wt4Type)} options={["None", "Perfect Storm", "Wind", "Cold", "Holy"]} />
+            <SelectField label="WT4" value={form.wt4} onChange={(value) => updateField("wt4", value)} options={["None", "Perfect Storm", "Wind", "Cold", "Holy"]} />
             <NumberField label="EA Max" value={form.ea_max} onChange={(value) => updateField("ea_max", value)} />
             <NumberField
               label="LB Max"
@@ -280,7 +255,7 @@ function App() {
               actionLabel="Lookup"
               onAction={() => setReferenceOpen(true)}
             />
-            <SelectField label="Sort" value={form.sort_mode} onChange={(value) => updateField("sort_mode", value as SortMode)} options={["Balanced", "Max Push"]} />
+            <SelectField label="Sort" value={form.sort_mode} onChange={(value) => updateField("sort_mode", value)} options={["Balanced", "Max Push"]} />
             <NumberField label="Show Count" value={form.show_count} onChange={(value) => updateField("show_count", value)} />
             <NumberField label="Flat Weight" value={form.flat_weight} step="0.1" onChange={(value) => updateField("flat_weight", value)} />
           </div>
@@ -421,59 +396,47 @@ function App() {
   );
 }
 
-function NumberField(props: {
-  label: string;
-  value: NumericFieldValue;
-  onChange: (value: NumericFieldValue) => void;
-  step?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  const [rawValue, setRawValue] = useState(props.value === "" ? "" : String(props.value));
+function NumberField({ label, value, onChange, step, actionLabel, onAction }) {
+  const [rawValue, setRawValue] = useState(value === "" ? "" : String(value));
 
   useEffect(() => {
-    setRawValue(props.value === "" ? "" : String(props.value));
-  }, [props.value]);
+    setRawValue(value === "" ? "" : String(value));
+  }, [value]);
 
   return (
     <label className="field">
       <span className="field-label">
-        <span>{props.label}</span>
-        {props.actionLabel && props.onAction ? (
+        <span>{label}</span>
+        {actionLabel && onAction ? (
           <button
             type="button"
             className="field-link"
-            onClick={props.onAction}
+            onClick={onAction}
           >
-            {props.actionLabel}
+            {actionLabel}
           </button>
         ) : null}
       </span>
       <input
         type="number"
         value={rawValue}
-        step={props.step}
+        step={step}
         onChange={(event) => {
           const nextValue = event.target.value;
           setRawValue(nextValue);
-          props.onChange(nextValue === "" ? "" : Number(nextValue));
+          onChange(nextValue === "" ? "" : Number(nextValue));
         }}
       />
     </label>
   );
 }
 
-function SelectField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
+function SelectField({ label, value, onChange, options }) {
   return (
     <label className="field">
-      <span>{props.label}</span>
-      <select value={props.value} onChange={(event) => props.onChange(event.target.value)}>
-        {props.options.map((option) => (
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
@@ -483,28 +446,24 @@ function SelectField(props: {
   );
 }
 
-function ToggleButton(props: {
-  label: string;
-  enabled: boolean;
-  onClick: () => void;
-}) {
+function ToggleButton({ label, enabled, onClick }) {
   return (
-    <button className={props.enabled ? "toggle enabled" : "toggle"} onClick={props.onClick}>
-      {props.label} {props.enabled ? "ON" : "OFF"}
+    <button className={enabled ? "toggle enabled" : "toggle"} onClick={onClick}>
+      {label} {enabled ? "ON" : "OFF"}
     </button>
   );
 }
 
-function Metric(props: { label: string; value: string }) {
+function Metric({ label, value }) {
   return (
     <div className="metric-card">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
 
-function ReferenceSheet(props: { onClose: () => void }) {
+function ReferenceSheet({ onClose }) {
   return (
     <div className="reference-overlay" role="dialog" aria-modal="true" aria-label="Milestones and Limit Break reference">
       <div className="reference-card">
@@ -514,7 +473,7 @@ function ReferenceSheet(props: { onClose: () => void }) {
             <h2>Milestones and LB Max</h2>
             <p className="hero-copy">Quick lookup for skill milestones and Limit Break costs.</p>
           </div>
-          <button type="button" className="ghost-button" onClick={props.onClose}>
+          <button type="button" className="ghost-button" onClick={onClose}>
             Close
           </button>
         </div>

@@ -1,61 +1,13 @@
-type SortMode = "Balanced" | "Max Push";
-type Wt4Type = "None" | "Perfect Storm" | "Wind" | "Cold" | "Holy";
-
-type FormPayload = {
-  apples: number;
-  milestones: number;
-  hp: number;
-  mana: number;
-  fifteen: number;
-  max_ascension: number;
-  starforce: number;
-  wt4: Wt4Type;
-  mage: boolean;
-  smite_push: boolean;
-  use_bt: boolean;
-  use_gw: boolean;
-  ea_max: number;
-  lb_max: number;
-  show_count: number;
-  sort_mode: SortMode;
-  flat_weight: number;
-};
-
-type ResultEntry = {
-  rank: number;
-  name: string;
-  days: number;
-  delta: number;
-  flat: number;
-  score: number;
-  build: string;
-};
-
-type ResultPage = {
-  apples: number;
-  target_day: number;
-  best_days: number;
-  entries: ResultEntry[];
-};
-
-export type ApiResponse = {
-  pages: ResultPage[];
-  perf_text: string;
-};
-
 const HEADERS = [
   "IN", "TD", "AT", "GW", "RD", "AS",
   "TE", "BL", "S", "BT", "EA", "AC",
   "FA", "AP", "MS", "LB", "SM", "PS", "TS", "LS",
-] as const;
-
-type StatKey = typeof HEADERS[number] | "PM";
-type StatMap = Record<StatKey, number[]>;
+] ;
 
 const LB_MAX = 9;
 const LOOK = 10;
 
-function wt4ToLevel(wt4: string): number {
+function wt4ToLevel(wt4) {
   const value = String(wt4).trim().toLowerCase();
   if (value === "perfect storm") return 1;
   if (value === "wind") return 2;
@@ -64,7 +16,7 @@ function wt4ToLevel(wt4: string): number {
   return 0;
 }
 
-function getSimpleApples(lbMax: number, wt4: number) {
+function getSimpleApples(lbMax, wt4) {
   const lb = Math.min(Number(lbMax), LB_MAX);
   return {
     IN: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -91,7 +43,7 @@ function getSimpleApples(lbMax: number, wt4: number) {
   };
 }
 
-function getDamages(stats: number[], wt4: number, lbMax: number) {
+function getDamages(stats, wt4, lbMax) {
   const [milestones, hp, mana, fifteen, maxAscension, starforce] = stats;
   if (maxAscension > 20) {
     throw new Error("Max Ascension must be <= 20");
@@ -163,7 +115,7 @@ function getDamages(stats: number[], wt4: number, lbMax: number) {
   };
 }
 
-function getSimpleDamages(stats: number[], wt4: number, lbMax: number) {
+function getSimpleDamages(stats, wt4, lbMax) {
   const damages = getDamages(stats, wt4, lbMax);
   Object.values(damages).forEach((row) => {
     for (let i = row.length - 1; i > 0; i -= 1) {
@@ -173,33 +125,20 @@ function getSimpleDamages(stats: number[], wt4: number, lbMax: number) {
   return damages;
 }
 
-function calcDaysFromDamage(damage: number) {
+function calcDaysFromDamage(damage) {
   if (damage <= 0) return 0;
   return Math.log(damage) / Math.log(1.066);
 }
 
-function targetDayFromApples(apples: number) {
+function targetDayFromApples(apples) {
   return 9855 + (apples * 365);
 }
 
-function formatBuildName(name: string) {
+function formatBuildName(name) {
   return name || "Base Build";
 }
 
-type NodeType = {
-  apples: number;
-  damage: number;
-  name: string;
-  stats: Record<StatKey, number>;
-  increment: (h: StatKey) => NodeType | null;
-  computeName: () => void;
-  getDays: () => number;
-  getFlatNodes: () => number;
-  getBalancedScore: (flatWeight: number) => number;
-  getDetailedBuild: () => string;
-};
-
-function planAhead(form: FormPayload) {
+function planAhead(form) {
   const wt4 = wt4ToLevel(form.wt4);
   const lbMax = Math.min(Number(form.lb_max), LB_MAX);
   const apples = Number(form.apples);
@@ -209,12 +148,12 @@ function planAhead(form: FormPayload) {
     throw new Error("Apples must be >= 73 for WT4.");
   }
 
-  const simpleApples = getSimpleApples(lbMax, wt4) as StatMap;
+  const simpleApples = getSimpleApples(lbMax, wt4);
   const simpleDamages = getSimpleDamages(
     [form.milestones, form.hp, form.mana, form.fifteen, form.max_ascension, form.starforce],
     wt4,
     lbMax,
-  ) as StatMap;
+  );
 
   if (!form.smite_push) {
     simpleDamages.S = [1, 1];
@@ -223,13 +162,13 @@ function planAhead(form: FormPayload) {
   const maxApples = apples + LOOK;
   let nodeCount = 0;
 
-  class Node implements NodeType {
+  class Node {
     apples = 0;
     damage = 1;
     name = "";
-    stats: Record<StatKey, number>;
+    stats;
 
-    constructor(other?: Node) {
+    constructor(other) {
       nodeCount += 1;
       if (other) {
         this.apples = other.apples;
@@ -246,7 +185,7 @@ function planAhead(form: FormPayload) {
       }
     }
 
-    increment(h: StatKey) {
+    increment(h) {
       const current = this.stats[h];
       if (current + 1 >= simpleApples[h].length) return null;
 
@@ -294,12 +233,12 @@ function planAhead(form: FormPayload) {
       );
     }
 
-    getBalancedScore(flatWeight: number) {
+    getBalancedScore(flatWeight) {
       return this.getDays() - (this.getFlatNodes() * flatWeight);
     }
 
     getDetailedBuild() {
-      const parts: string[] = [];
+      const parts = [];
       HEADERS.forEach((h) => {
         const val = this.stats[h];
         if (val > 0) parts.push(`${h}${val}`);
@@ -308,7 +247,7 @@ function planAhead(form: FormPayload) {
     }
   }
 
-  const dp: Record<string, Node>[] = Array.from({ length: maxApples + 1 }, () => ({}));
+  const dp = Array.from({ length: maxApples + 1 }, () => ({}));
 
   const insertNode = (node?: Node | null) => {
     if (!node) return;
@@ -320,13 +259,13 @@ function planAhead(form: FormPayload) {
   let start = 0;
 
   if (wt4 > 0) {
-    startNode = startNode.increment("TE")!
-      .increment("S")!
-      .increment("BT")!
-      .increment("BT")!
-      .increment("BT")!
-      .increment("EA")!
-      .increment("PS")!;
+    startNode = startNode.increment("TE")
+      .increment("S")
+      .increment("BT")
+      .increment("BT")
+      .increment("BT")
+      .increment("EA")
+      .increment("PS");
     start += 10;
   }
 
@@ -428,23 +367,23 @@ function planAhead(form: FormPayload) {
       const prev2 = dp[i - 2]?.[node.name];
       const prev3 = dp[i - 3]?.[node.name];
 
-      let bestNode: Node | null = null;
+      let bestNode = null;
       let bestDamage = 0;
 
-      const testNode = (candidate?: Node | null) => {
+      const testNode = (candidate) => {
         if (candidate && candidate.damage > bestDamage) {
           bestNode = candidate;
           bestDamage = candidate.damage * 1.001;
         }
       };
 
-      const addCon = (h: StatKey) => {
+      const addCon = (h) => {
         if (node.stats[h] + 1 < simpleDamages[h].length) {
           testNode(node.increment(h));
         }
       };
 
-      const addPrevCon = (prev: Node | undefined, h: StatKey) => {
+      const addPrevCon = (prev, h) => {
         if (prev && prev.stats[h] + 1 < simpleDamages[h].length) {
           testNode(prev.increment(h));
         }
@@ -548,8 +487,8 @@ function planAhead(form: FormPayload) {
   return { dp, nodeCount, totalTreeCount };
 }
 
-function buildResultPages(apples: number, dp: Record<string, NodeType>[], showCount: number, sortMode: SortMode, flatWeight: number) {
-  const pages: ResultPage[] = [];
+function buildResultPages(apples, dp, showCount, sortMode, flatWeight) {
+  const pages = [];
   for (let k = apples; k < apples + LOOK; k += 1) {
     const values = Object.values(dp[k] ?? {});
     if (!values.length) continue;
@@ -561,7 +500,7 @@ function buildResultPages(apples: number, dp: Record<string, NodeType>[], showCo
       values.sort((a, b) => b.damage - a.damage);
     }
 
-    const entries: ResultEntry[] = values.slice(0, showCount).map((node, idx) => {
+    const entries = values.slice(0, showCount).map((node, idx) => {
       const days = node.getDays();
       const delta = days - absoluteBestDays;
       const flat = node.getFlatNodes();
@@ -588,7 +527,7 @@ function buildResultPages(apples: number, dp: Record<string, NodeType>[], showCo
   return pages;
 }
 
-export function calculateWorldtree(form: FormPayload): ApiResponse {
+export function calculateWorldtree(form) {
   const { dp, nodeCount, totalTreeCount } = planAhead(form);
   const pages = buildResultPages(form.apples, dp, form.show_count, form.sort_mode, form.flat_weight);
   const perf_text = `${totalTreeCount.toLocaleString()} trees, ${nodeCount.toLocaleString()} nodes`;
