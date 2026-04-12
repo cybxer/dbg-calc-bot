@@ -200,7 +200,7 @@ function planAhead(form) {
     }
 
     computeName() {
-      const names: string[] = [];
+      const names = [];
       if (this.stats.MS) names.push(`MS${this.stats.MS}`);
       if (this.stats.SM) names.push(`SM${this.stats.SM}`);
       if (this.stats.BT) names.push(`BT${this.stats.BT}`);
@@ -249,7 +249,7 @@ function planAhead(form) {
 
   const dp = Array.from({ length: maxApples + 1 }, () => ({}));
 
-  const insertNode = (node?: Node | null) => {
+  const insertNode = (node) => {
     if (!node) return;
     node.computeName();
     dp[node.apples][node.name] = node;
