@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/.proxy/api/:path*",
+      "destination": "https://dbg-worldtree-api.vercel.app/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://dbg-worldtree-api.vercel.app/api/:path*"
+    }
+  ]
+}
