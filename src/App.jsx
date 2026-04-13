@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { calculateWorldtree } from "./calc";
+import { calculateWorldtree } from "./calc.js";
 
 const DEFAULT_FORM = {
   apples: 73,
