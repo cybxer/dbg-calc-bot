@@ -1,6 +1,2 @@
-/src/
 node_modules/
-
-/*.html
-/*.json
-/*.ts
+package-lock.json
