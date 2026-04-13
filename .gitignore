@@ -1,4 +1,6 @@
-src/
-*.html
-*.json
-*.ts
+/src/
+node_modules/
+
+/*.html
+/*.json
+/*.ts
