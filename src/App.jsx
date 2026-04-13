@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { calculateWorldtree } from "./calc.js";
 
 const DEFAULT_FORM = {
-  apples: 73,
+  apples: 52,
   milestones: 0,
   hp: 0,
   mana: 0,
